@@ -7,6 +7,10 @@ wheels/
 *.egg-info
 banco_dados/
 uv.lock
+credentials.json
+token.json
+
+
 
 # Virtual environments
 .venv
