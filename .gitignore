@@ -9,7 +9,16 @@ banco_dados/
 uv.lock
 credentials.json
 token.json
-
+/banco_dados
+banco_financas.db
+memoria_agente.db
+credentials.json
+token_agenda.json
+token.json
+token
+token_gmail.json
+token_agenda.json
+token_gmail.json
 
 
 # Virtual environments
