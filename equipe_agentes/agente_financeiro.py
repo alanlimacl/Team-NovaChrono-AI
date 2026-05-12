@@ -3,7 +3,6 @@ from ferramentas.adicionar_gasto import adicionar
 from ferramentas.consultar_gasto import consultar
 from datetime import datetime, timedelta, timezone
 
-
 def funcao_agente_fianceiro():
     fuso = timezone(timedelta(hours=-3))
     agora = datetime.now(fuso)

@@ -1,5 +1,7 @@
-import sqlite3
 from typing import Optional
+from banco_dados.conexao import engine
+from sqlalchemy import text
+
 
 def consultar(data_inicial: str, data_final: str, categoria: Optional[str] = None) -> str:
     """
@@ -7,53 +9,47 @@ def consultar(data_inicial: str, data_final: str, categoria: Optional[str] = Non
     
     REGRA DE DATAS PARA O AGENTE:
     - O formato OBRIGATÓRIO é 'YYYY-MM-DD'.
-    - Se o usuário pedir apenas um dia específico (ex: "hoje" ou "ontem"), passe a MESMA data em 'data_inicial' e 'data_final'.
-    - Se o usuário pedir "este mês", calcule o primeiro e o último dia do mês atual.
-    
-    Args:
-        data_inicial (str): A data de início no formato 'YYYY-MM-DD'.
-        data_final (str): A data de fim no formato 'YYYY-MM-DD'.
-        categoria (str, optional): A categoria do gasto. Deixe em branco se o usuário quiser o geral.
-        
-    Returns:
-        str: Um relatório formatado com os gastos encontrados ou um aviso se estiver vazio.
+    - Se o usuário pedir apenas um dia específico, passe a MESMA data.
+    - Se o usuário pedir "este mês", calcule o primeiro e o último dia.
     """
     try:
-        conexao = sqlite3.connect('banco_dados/banco_financas.db')
-        cursor = conexao.cursor()
-        
-        query = "SELECT * FROM financas WHERE data BETWEEN ? AND ?"
-        parametros = [data_inicial, data_final]
-        
         if categoria:
-            query += " AND categoria LIKE ?"
-            parametros.append(f'%{categoria}%')
-        
-        query += " ORDER BY data DESC"
-        
-        cursor.execute(query, tuple(parametros))
-        registros = cursor.fetchall()
-        conexao.close()
-        
-        if not registros:
+            query = text("SELECT * FROM financas WHERE data BETWEEN :data_inicial AND :data_final AND categoria = :categoria ORDER BY data DESC")
+            parametros = {'data_inicial': data_inicial, 'data_final': data_final, 'categoria': categoria}
+            
+        else:
+            query = text("SELECT * FROM financas WHERE data BETWEEN :data_inicial AND :data_final ORDER BY data DESC")
+            parametros = {'data_inicial': data_inicial, 'data_final': data_final}
+            
+        # engine.connect() é o ideal para SELECTs. engine.begin() é mais usado para INSERT/UPDATE
+        with engine.connect() as conexao:
+            resultado = conexao.execute(query, parametros)
+            # Extrai todas as linhas para uma lista do Python
+            linhas_resultado = resultado.fetchall()
+            
+        if not linhas_resultado:
             if categoria:
                 return f"Nenhum gasto encontrado na Categoria '{categoria}' entre {data_inicial} e {data_final}."
-            
             return f"Nenhum gasto encontrado entre {data_inicial} e {data_final}."
-    
-        total_gasto = 0
-        resposta = f'💸 Relatório de Gastos ({len(registros)} encontrados):\n\n'
-        
-        for linha in registros:
-            id_gasto, valor, item, categoria_item, metodo_pagamento, data, id_usuario = linha
-            
-            total_gasto += valor
-            
-            resposta += f'- {item} | R$ {valor:.2f} | {categoria_item} | {metodo_pagamento} | {data}\n'
 
-        resposta += f'\n💰 Total no período: R$ {total_gasto:.2f}'
+        total_gasto = 0.0
+        # Usamos uma lista para armazenar as strings (é mais eficiente que concatenar strings grandes com +)
+        resposta = [f"💸 Relatório de Gastos ({len(linhas_resultado)} encontrados):\n"]
         
-        return resposta
+        for linha in linhas_resultado:
+            linha_valor_numerico = float(linha.valor)
+            total_gasto += linha_valor_numerico 
+            
+            resposta.append(f"- {linha.item} | R$ {linha_valor_numerico:.2f} | {linha.categoria} | {linha.metodo_pagamento} | {linha.data}")
+            
+        resposta.append(f"\n💰 Total no período: R$ {total_gasto:.2f}")
+        
+        return "\n".join(resposta)
 
     except Exception as e:
         return f"Erro interno ao consultar o Banco de Dados: {str(e)}"
+
+
+
+if __name__ == "__main__":
+    print(consultar('2026-04-14', '2026-04-14'))
