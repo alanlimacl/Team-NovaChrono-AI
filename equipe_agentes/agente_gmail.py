@@ -2,7 +2,6 @@ import os
 from agno.agent import Agent
 from agno.tools.google.gmail import GmailTools
 
-
 DIRETORIO_ATUAL = os.path.dirname(os.path.abspath(__file__))
 DIRETORIO_RAIZ = os.path.dirname(DIRETORIO_ATUAL)
 CAMINHO_CREDENCIAIS = os.path.join(DIRETORIO_RAIZ, 'credentials.json')

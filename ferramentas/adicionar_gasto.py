@@ -1,7 +1,5 @@
-import sqlite3
-
-conexao = sqlite3.connect('banco_dados/banco_financas.db')
-cursor = conexao.cursor()
+from banco_dados.conexao import engine
+from sqlalchemy import text
 
 def adicionar(valor: float, item: str, categoria: str, metodo_pagamento: str, data: str, id_usuario: int = 1):
     """
@@ -24,15 +22,28 @@ def adicionar(valor: float, item: str, categoria: str, metodo_pagamento: str, da
     """
     
     try:
-        query = """INSERT INTO financas (valor, item, categoria, metodo_pagamento, data, id_usuario) 
-        VALUES (?, ?, ?, ?, ?, ?)"""
+        query = text(
+            """INSERT INTO financas (valor, item, categoria, metodo_pagamento, data, id_usuario) 
+        VALUES (:valor, :item, :categoria, :metodo_pagamento, :data, :id_usuario)""")
         
-        cursor.execute(query, (valor, item, categoria, metodo_pagamento, data, id_usuario),)
+        with engine.begin() as conexao:
+            conexao.execute(
+                query, {
+                    'valor':valor,
+                    'item': item,
+                    'categoria': categoria,
+                    'metodo_pagamento': metodo_pagamento,
+                    'data':data,
+                    'id_usuario': id_usuario
+                }
+            )
         
-        conexao.commit()
-        conexao.close()
         return f"Gastos '{item}' no valor de R$ {valor:.2f}, adicionado com sucesso!"
     
     except Exception as e:
         return 'Erro ao adicionar gasto no Banco de Dados:', e
+    
+
+if __name__ == "__main__":
+    print(adicionar(valor=7, item="Beiju", categoria='Alimentação', metodo_pagamento='Pix', data='2026-04-14'))
         
